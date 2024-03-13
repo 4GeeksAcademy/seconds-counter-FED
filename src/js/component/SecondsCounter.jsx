@@ -1,71 +1,106 @@
-import React, { useEffect, useState, useRef } from 'react';
-import PropTypes from 'prop-types';
+import React, { useState, useEffect, useRef } from 'react';
 
 const SecondsCounter = () => {
-    const [count, setCount] = useState(0);
-    const [countdownValue, setCountdownValue] = useState('');
-    const [isRunning, setIsRunning] = useState(false);
-    const countdownRef = useRef(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [countdownValue, setCountdownValue] = useState('');
+  const [countdownSeconds, setCountdownSeconds] = useState(null);
+  const [isCountdownRunning, setIsCountdownRunning] = useState(false);
+  const [intervalId, setIntervalId] = useState(null);
+  const [isElapsedPaused, setIsElapsedPaused] = useState(false);
+  const [pausedElapsedTime, setPausedElapsedTime] = useState(0);
+  const startTimeRef = useRef(null);
 
-    useEffect(() => {
-        if (isRunning && count > 0) {
-            countdownRef.current = setTimeout(() => {
-                setCount(count - 1);
-            }, 1000);
-        } else if (isRunning && count === 0) {
-            alert('Time  is up!');
-            setIsRunning(false);
-        }
+  const startElapsedTimer = (pausedTime = 0) => {
+    startTimeRef.current = Date.now() - pausedTime * 1000;
+    const timerIntervalId = setInterval(() => {
+      if (!isElapsedPaused) {
+        const elapsedTime = Math.floor((Date.now() - startTimeRef.current) / 1000);
+        setElapsedSeconds(elapsedTime);
+      }
+    }, 1000);
+    setIntervalId(timerIntervalId);
+  };
 
-    return () => clearTimeout(countdownRef.current);
-}, [count, isRunning]);
+  useEffect(() => {
+    startElapsedTimer();
+    return () => clearInterval(intervalId);
+  }, []);
 
-const handleStart = () => {
-    if (countdownValue) {
-        setCount(parseInt(countdownValue));
-        setIsRunning(true);
+  const handleElapsedPause = () => {
+    setIsElapsedPaused(true);
+    clearInterval(intervalId);
+    setPausedElapsedTime(elapsedSeconds);
+  };
+
+  const handleElapsedResume = () => {
+    setIsElapsedPaused(false);
+    // Ensure there's no accidental clearInterval here
+    const pausedTimeInSeconds = pausedElapsedTime - (elapsedSeconds - pausedElapsedTime);
+    startElapsedTimer(pausedTimeInSeconds);
+  };
+
+  const handleElapsedReset = () => {
+    setElapsedSeconds(0);
+    setPausedElapsedTime(0);
+    startElapsedTimer();
+  };
+
+  const handleCountdownChange = (event) => {
+    setCountdownValue(event.target.value);
+  };
+
+  const handleCountdownStart = () => {
+    setIsCountdownRunning(true);
+    setCountdownSeconds(parseInt(countdownValue));
+  };
+
+  const handleCountdownReset = () => {
+    setIsCountdownRunning(false);
+    setCountdownSeconds(null);
+  };
+
+  useEffect(() => {
+    if (isCountdownRunning && countdownSeconds !== null && countdownSeconds > 0) {
+      const countdownIntervalId = setInterval(() => {
+        setCountdownSeconds(prevSeconds => prevSeconds - 1);
+      }, 1000);
+      return () => clearInterval(countdownIntervalId);
+    } else if (countdownSeconds === 0) {
+      setIsCountdownRunning(false);
+      clearInterval(intervalId);
+      alert('Time is up!');
     }
-};
+  }, [countdownSeconds, isCountdownRunning]);
 
-const handleStop = () => {
-    setIsRunning(false);
-};
-
-const handleReset = () => {
-    setCount(0);
-    setCountdownValue('');
-    setIsRunning(false);
-};
-
-return (
-        <div className="countdown-container">
-            <div className="d-flex align-items-center justify-content-center">
-                <input
-                className="countdown-input"
-                type="number"
-                value={countdownValue}
-                onChange={(e) => setCountdownValue(e.target.value)}
-                placeholder="Enter countdown value"
-                />
-                <button className="countdown-button" onClick={handleStart} disabled={isRunning}>
-                    Start
-                </button>
-                <i className="far fa-clock fa-2x mr-2"></i>
-                <span className="countdown-display">{count.toString().padStart(6, '0')}</span>
-                <button className="countdown-button" onClick={handleStop} disabled={!isRunning}>
-                Stop
-                </button>
-                <button className="countdown-button" onClick={handleReset} disabled={!isRunning && count === 0}>
-                    Reset
-                </button>
-            </div>  
-        </div>
-    );
-};
-
-SecondsCounter.propTypes = {
-    seconds: PropTypes.number,
+  return (
+    <div className="seconds-counter">
+      <div className="elapsed">
+        <p>Seconds since website finished loading: {elapsedSeconds}</p>
+        {isElapsedPaused ? (
+          <button onClick={handleElapsedResume}>Resume Elapsed</button>
+        ) : (
+          <button onClick={handleElapsedPause}>Pause Elapsed</button>
+        )}
+        <button onClick={handleElapsedReset}>Reset Elapsed</button>
+      </div>
+      <div className="countdown">
+        <input
+          type="number"
+          value={countdownValue}
+          onChange={handleCountdownChange}
+          placeholder="Enter countdown value"
+          disabled={isCountdownRunning}
+        />
+        <button onClick={handleCountdownStart} disabled={isCountdownRunning}>
+          Start Countdown
+        </button>
+        <button onClick={handleCountdownReset}>Reset Countdown</button>
+        {countdownSeconds !== null && (
+          <p>Seconds remaining: {countdownSeconds}</p>
+        )}
+      </div>
+    </div>
+  );
 };
 
 export default SecondsCounter;
-

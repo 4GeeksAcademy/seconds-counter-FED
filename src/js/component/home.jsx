@@ -1,3 +1,5 @@
+// home.jsx
+
 import React from "react";
 import SecondsCounter from "./SecondsCounter";
 

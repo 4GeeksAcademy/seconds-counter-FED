@@ -1,4 +1,5 @@
-//import react into the bundle
+//index.js
+
 import React from "react";
 import ReactDOM from "react-dom";
 import SecondsCounter from "./component/SecondsCounter.jsx";
